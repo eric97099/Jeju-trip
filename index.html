@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>濟州島旅行地圖</title>
+
+<style>
+:root{
+  color-scheme:light;
+  --page:#f7f5ef;--ink:#172019;--ink2:#6f746d;--ink3:#9a9d97;
+  --card:rgba(255,255,255,.76);--card-strong:rgba(255,255,255,.96);--surface:#fff;
+  --hairline:rgba(0,0,0,.08);--hairline-soft:rgba(0,0,0,.06);
+  --sea:#e8f2f2;--land1:#e7ebdd;--land2:#eee7da;
+  --brand:#2f4a3e;--brand-hover:#3a5c4c;
+  --d1:#3d8fc4;--d2:#e56f61;--d3:#3f9a7a;--d4:#d99232;--d5:#756bc1;
+}
+
+*{box-sizing:border-box}
+html{color-scheme:light only;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--page);color:var(--ink);font-family:"Noto Sans TC","PingFang TC",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,a{font:inherit}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+.page{max-width:2400px;margin:0 auto;padding:0 22px 20px;padding-top:env(safe-area-inset-top,0px);padding-bottom:max(20px,env(safe-area-inset-bottom));padding-left:max(22px,env(safe-area-inset-left));padding-right:max(22px,env(safe-area-inset-right))}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:72px;padding:0 22px;margin:18px 0 16px;background:var(--card);border:1px solid var(--hairline-soft);border-radius:20px;box-shadow:0 8px 30px rgba(40,50,40,.06)}
+.topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+.menu-toggle{flex-shrink:0;width:46px;height:46px;border-radius:14px;border:1px solid var(--hairline);background:var(--surface);color:var(--ink);font-size:20px;line-height:1;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.titletext{min-width:0}
+.topbar h1{margin:0;font-size:26px;font-weight:700;color:var(--ink);letter-spacing:.2px;text-wrap:balance}
+.topbar .sub{color:var(--ink3);font-size:13px;margin-top:3px}
+.copy-all{flex-shrink:0;display:flex;align-items:center;gap:8px;height:44px;padding:0 18px;border:0;border-radius:12px;background:var(--brand);color:#fff;font-weight:650;font-size:14px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background .18s ease}
+.copy-all:hover{background:var(--brand-hover)}
+.copy-all .icon{font-size:16px}
+
+.body{display:flex;gap:18px;align-items:flex-start}
+.sidebar{flex-shrink:0;width:312px;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--hairline-soft);border-radius:20px;padding:14px;box-shadow:0 8px 30px rgba(40,50,40,.06);max-height:calc(100dvh - 170px);min-height:600px}
+.sidebar-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:2px 6px 12px;border-bottom:1px solid var(--hairline-soft);margin-bottom:6px}
+.sidebar-head h2{margin:0;font-size:16px;font-weight:750;color:var(--ink)}
+.sidebar-head .sub{color:var(--ink3);font-size:12px;margin-top:3px}
+.sidebar-close{display:none;flex-shrink:0;width:36px;height:36px;border:0;border-radius:9px;background:transparent;color:var(--ink3);font-size:21px;cursor:pointer;touch-action:manipulation;align-items:center;justify-content:center}
+.sidebar-list{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0;padding-right:2px}
+
+.day-group{border:0;margin:8px 0}
+.day-group summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 8px;border-radius:10px;-webkit-tap-highlight-color:transparent}
+.day-group summary::-webkit-details-marker{display:none}
+.day-group.active summary{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.day-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.day-title{font-weight:750;font-size:14px;color:var(--ink)}
+.day-date{font-size:12.5px;color:var(--ink3);font-weight:500}
+.chevron{margin-left:auto;font-size:13px;color:var(--ink3);transition:transform .18s ease;flex-shrink:0}
+.day-group[open] .chevron{transform:rotate(90deg)}
+.day-items{display:flex;flex-direction:column;gap:2px;padding:2px 2px 6px}
+.item{display:grid;grid-template-columns:28px 1fr;gap:9px;align-items:center;min-height:56px;padding:8px 10px;border:0;border-radius:12px;background:transparent;color:var(--ink);text-align:left;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.item:hover{background:color-mix(in srgb,var(--ink) 4%,transparent)}
+.item.selected{background:color-mix(in srgb,var(--ink) 8%,transparent)}
+.item-num{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:#fff;font-size:11px;font-weight:750;font-variant-numeric:tabular-nums}
+.item-name{display:block;font-size:14px;font-weight:650}
+.item-meta{display:block;font-size:12px;color:var(--ink3);margin-top:1px}
+
+.content{flex:1;min-width:0}
+.filters{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-snap-type:x proximity;scroll-padding-inline:4px;padding-bottom:4px;margin-bottom:14px}
+.filters::-webkit-scrollbar{display:none}
+.filters button{flex-shrink:0;scroll-snap-align:start;display:flex;align-items:center;gap:7px;height:41px;padding:0 16px;border-radius:999px;border:1px solid var(--hairline);background:var(--card);color:var(--ink2);font-size:13.5px;font-weight:650;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;white-space:nowrap;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.filters button .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.filters button[data-id="all"].active{background:var(--brand);border-color:var(--brand);color:#fff}
+
+.mapbox{position:relative;background:var(--sea);border-radius:21px;overflow:hidden;box-shadow:0 12px 35px rgba(40,50,40,.06);height:clamp(600px,calc(100dvh - 170px),820px)}
+.mapbox svg{display:block;width:100%;height:100%;touch-action:manipulation}
+.district{stroke:var(--hairline);stroke-width:1}
+.jeju{fill:var(--land1)}
+.seogwipo{fill:var(--land2)}
+.gridline{fill:none;stroke:var(--ink3);stroke-width:.6;opacity:.25}
+.route{fill:none;stroke-width:1.8;stroke-dasharray:6 4;opacity:.55}
+.route-arrow{pointer-events:none}
+.leader{stroke:rgba(80,90,80,.35);stroke-width:1}
+.marker{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.marker .hit{fill:transparent;stroke:none}
+.marker .ring{fill:none;stroke:#fff;stroke-width:2;opacity:.9;pointer-events:none}
+.marker .dot{stroke:#fff;stroke-width:2;filter:drop-shadow(0 2px 6px rgba(0,0,0,.14))}
+.marker.selected .dot{stroke-width:2.5;filter:drop-shadow(0 4px 12px rgba(0,0,0,.2))}
+.marker.context{pointer-events:none}
+.marker text{fill:#fff;font-size:11.5px;font-weight:750;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.region-label{fill:rgba(60,75,65,.72);font-size:13px;font-weight:650;text-anchor:middle;pointer-events:none}
+.region-label.peak{font-size:12px}
+
+.footer{margin:16px 4px 0;color:var(--ink3);font-size:12px}
+
+.backdrop{display:none}
+.toast{position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--page);padding:9px 14px;border-radius:9px;opacity:0;pointer-events:none;transition:opacity .18s;z-index:30;white-space:nowrap}
+.toast.show{opacity:1}
+
+.place-popup{position:absolute;z-index:8;left:14px;right:14px;bottom:14px;display:flex;align-items:stretch;gap:18px;padding:18px 20px;border-radius:18px;background:var(--card-strong);box-shadow:0 10px 30px rgba(0,0,0,.12);opacity:0;visibility:hidden;transform:translateY(10px);transition:opacity .18s,transform .18s,visibility .18s}
+.place-popup.show{opacity:1;visibility:visible;transform:translateY(0)}
+.popup-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--ink3);font-size:20px;cursor:pointer;touch-action:manipulation}
+.popup-info{flex:1;min-width:0;padding-right:28px}
+.popup-day{font-size:11.5px;font-weight:750;margin-bottom:3px}
+.popup-name{margin:0;font-size:21px;font-weight:750;color:var(--ink)}
+.popup-kr{margin:4px 0 8px;font-size:14.5px;color:var(--ink2)}
+.popup-address{margin:0;display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--ink2);user-select:text}
+.popup-address-text{overflow-wrap:anywhere}
+.popup-address-copy{flex-shrink:0;width:24px;height:24px;border:0;border-radius:6px;background:transparent;color:var(--ink3);font-size:13px;cursor:pointer;touch-action:manipulation}
+.popup-address-copy:hover{color:var(--ink)}
+.popup-actions{flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:8px;width:160px}
+.popup-copy{height:45px;border:1px solid var(--hairline);border-radius:12px;background:var(--surface);color:var(--ink);font-weight:650;cursor:pointer;touch-action:manipulation}
+.popup-nav{height:45px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:var(--brand);color:#fff;font-weight:650;text-decoration:none;touch-action:manipulation;transition:background .15s ease}
+.popup-nav:hover{background:var(--brand-hover)}
+
+@media(min-width:1024px){
+  .sidebar{position:static}
+}
+@media(max-width:1023.98px){
+  .body{display:block}
+  .sidebar{position:fixed;z-index:21;top:0;bottom:0;left:0;width:min(86vw,320px);max-width:none;max-height:none;min-height:0;border-radius:0;box-shadow:6px 0 24px rgba(0,0,0,.18);transform:translateX(-105%);transition:transform .22s ease;padding-top:max(14px,env(safe-area-inset-top));padding-bottom:max(14px,env(safe-area-inset-bottom))}
+  body.drawer-open .sidebar{transform:translateX(0)}
+  .sidebar-close{display:flex}
+  body.drawer-open{overflow:hidden}
+  .backdrop{display:block;position:fixed;z-index:20;inset:0;background:rgba(0,0,0,.25);opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;pointer-events:none}
+  body.drawer-open .backdrop{opacity:1;visibility:visible;pointer-events:auto}
+}
+@media(max-width:767.98px){
+  .page{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+  .topbar{min-height:70px;padding:0 14px;margin:14px 0 12px}
+  .menu-toggle{width:42px;height:42px;font-size:18px;border-radius:12px}
+  .topbar h1{font-size:20px}
+  .topbar .sub{font-size:12px}
+  .copy-all{width:42px;height:42px;padding:0;justify-content:center}
+  .copy-all .label{display:none}
+  .mapbox{height:clamp(500px,65dvh,680px);border-radius:17px}
+  .place-popup{left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));flex-direction:column;max-height:45vh;overflow-y:auto;padding:16px 16px 14px;gap:10px}
+  .popup-info{padding-right:0}
+  .popup-name{font-size:19px}
+  .popup-actions{flex-direction:row;width:auto}
+  .popup-copy,.popup-nav{flex:1}
+}
+@media(max-width:360px){
+  .popup-actions{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" type="button" aria-label="開啟行程選單" aria-expanded="false">☰</button>
+      <div class="titletext">
+        <h1>濟州島旅行地圖</h1>
+        <div class="sub">2026.09.19 – 09.23 · 5天4夜</div>
+      </div>
+    </div>
+    <button class="copy-all" type="button" aria-label="複製目前顯示的地址" title="複製目前顯示的地址">
+      <span class="icon">⧉</span><span class="label">複製本日地址</span>
+    </button>
+  </header>
+  <div class="body">
+    <aside class="sidebar" aria-label="行程清單">
+      <div class="sidebar-head">
+        <div><h2>行程清單</h2><div class="sub">點選景點可在地圖查看位置</div></div>
+        <button class="sidebar-close" type="button" aria-label="關閉行程選單">×</button>
+      </div>
+      <div class="sidebar-list"></div>
+    </aside>
+    <div class="content">
+      <nav class="filters" aria-label="日期篩選"></nav>
+      <div class="mapbox">
+        <svg role="img" aria-label="濟州島旅行地圖"></svg>
+        <section class="place-popup" aria-live="polite" aria-hidden="true">
+          <button class="popup-close" type="button" aria-label="關閉景點資訊">×</button>
+          <div class="popup-info">
+            <div class="popup-day"></div>
+            <h2 class="popup-name"></h2>
+            <div class="popup-kr"></div>
+            <p class="popup-address"><span class="popup-address-text"></span><button class="popup-address-copy" type="button" aria-label="複製地址" title="複製地址">⧉</button></p>
+          </div>
+          <div class="popup-actions">
+            <button class="popup-copy" type="button">複製地址</button>
+            <a class="popup-nav" target="_blank" rel="noopener noreferrer">開始導航</a>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+  <div class="footer">地點座標依 Google Maps 核對；行政邊界來源為 Statistics Korea 2018。市集、商圈及咖啡街以代表定位點標示。</div>
+</div>
+<div class="backdrop" aria-hidden="true"></div>
+<div class="toast" role="status" aria-live="polite">已複製</div>
+<script>
+const geo={type:'FeatureCollection',features:[{type:'Feature',properties:{name:'제주시',code:'39010'},geometry:{type:'Polygon',coordinates:[[[126.9018,33.5153],[126.9104,33.5091],[126.9073,33.4873],[126.8822,33.4781],[126.8463,33.462],[126.7969,33.4401],[126.752,33.4198],[126.6683,33.4002],[126.6249,33.385],[126.5667,33.3717],[126.5087,33.3587],[126.4525,33.3586],[126.4091,33.3421],[126.3643,33.3413],[126.3118,33.3269],[126.2738,33.2977],[126.2293,33.2849],[126.1916,33.297],[126.1609,33.2919],[126.1684,33.3165],[126.1653,33.3309],[126.1693,33.3457],[126.199,33.3662],[126.2393,33.3943],[126.2623,33.4164],[126.2632,33.4369],[126.2978,33.4465],[126.3216,33.4665],[126.357,33.4791],[126.4007,33.4834],[126.4569,33.5035],[126.487,33.5184],[126.5417,33.529],[126.5994,33.5368],[126.6652,33.5429],[126.7299,33.5604],[126.7895,33.5615],[126.8493,33.5332],[126.9018,33.5153]]]}},{type:'Feature',properties:{name:'서귀포시',code:'39020'},geometry:{type:'Polygon',coordinates:[[[126.9116,33.4794],[126.9236,33.4682],[126.9228,33.4563],[126.9303,33.4663],[126.9354,33.4783],[126.9447,33.4554],[126.9346,33.4608],[126.924,33.4506],[126.9222,33.4406],[126.9366,33.4294],[126.9243,33.4287],[126.9146,33.4208],[126.9065,33.3935],[126.8819,33.3819],[126.8692,33.3611],[126.8576,33.3428],[126.8441,33.3329],[126.8365,33.3107],[126.8039,33.3046],[126.7767,33.3061],[126.7428,33.2777],[126.6785,33.2707],[126.6198,33.2441],[126.5858,33.2436],[126.5428,33.2399],[126.4913,33.2325],[126.4519,33.2415],[126.3813,33.234],[126.3433,33.235],[126.2981,33.2228],[126.2772,33.1969],[126.2478,33.2178],[126.1823,33.2597],[126.1721,33.2855],[126.1916,33.2964],[126.2289,33.285],[126.2721,33.2975],[126.3111,33.3262],[126.3588,33.3415],[126.4087,33.3424],[126.4514,33.3588],[126.5082,33.3584],[126.5649,33.3717],[126.6231,33.3843],[126.6679,33.4004],[126.7115,33.4219],[126.7492,33.4196],[126.7967,33.4402],[126.8444,33.4613],[126.882,33.4778],[126.9116,33.4794]]]}}]};
+const days=[
+{id:'d1',label:'9/19',color:'var(--d1)',places:[
+['樂天取車','롯데렌터카 제주오토하우스','제주특별자치도 제주시 용해로 92',126.5031542,33.5092041,'07:30'],['9.81 賽車主題公園','9.81파크 제주','제주특별자치도 제주시 애월읍 천덕로 880-24',126.3663248,33.3899391,'08:30'],['濟州堂 Bakery cafe','제주당','제주특별자치도 제주시 애월읍 월각로 927',126.3559404,33.3541964,'10:30'],['春心之家・烤白帶魚','춘심이네 본점','제주특별자치도 서귀포시 안덕면 창천중앙로24번길 16',126.370647,33.264495,'12:00'],['Osulloc 茶博物館','오설록 티뮤지엄','제주특별자치도 서귀포시 안덕면 신화역사로 15',126.2894355,33.3059385,'15:00'],['西歸浦橋飯店','호텔 브릿지 서귀포','제주특별자치도 서귀포시 태평로 436',126.5667011,33.2455895,'入住 2 晚'],['西歸浦偶來市場','서귀포매일올레시장','제주특별자치도 서귀포시 서귀동 340',126.5640617,33.2487163,'晚餐選項'],['88 黑豬肉湯飯','88국밥','제주특별자치도 서귀포시 중앙로59번길 4',126.5612414,33.250057,'晚餐選項']]},
+{id:'d2',label:'9/20',color:'var(--d2)',places:[
+['正房瀑布','정방폭포','제주특별자치도 서귀포시 칠십리로214번길 37',126.5715794,33.2448567,'早上'],['三姓穴海鮮湯','삼성혈해물탕 서귀포점','제주특별자치도 서귀포시 서호남로32번길 31-1',126.5142803,33.2488211,'午餐'],['Jeju Waterworld','제주워터월드','제주특별자치도 서귀포시 월드컵로 33',126.5089155,33.2452293,'下午'],['大浦柱狀節理帶','대포주상절리대','제주특별자치도 서귀포시 이어도로 36-24',126.4254867,33.2367938,'下午'],['藥泉寺','약천사','제주특별자치도 서귀포시 이어도로 293-28',126.4494597,33.2461544,'時間充足再去'],['豚舍豚 西歸浦店','돈사돈 서귀포점','제주특별자치도 서귀포시 이어도로 778-1',126.4980046,33.2355085,'晚餐']]},
+{id:'d3',label:'9/21',color:'var(--d3)',places:[
+['城山港','성산포항 종합여객터미널','제주특별자치도 서귀포시 성산읍 성산등용로 112-7',126.9346052,33.4728912,'09:00'],['ONOFF 炸豬排','온오프','제주특별자치도 제주시 우도면 우도해안길 876',126.9615353,33.5129211,'牛島午餐'],['Udo Sand 花生冰淇淋','우도샌드','제주특별자치도 제주시 우도면 우도해안길 788',126.9576266,33.5162432,'飯後甜點'],['天津港','천진항 대합실','제주특별자치도 제주시 우도면 우도해안길 70',126.9515777,33.4929345,'上午回程港口'],['下牛木洞港','하우목동항','제주특별자치도 제주시 우도면 우도해안길 352',126.9423827,33.5095737,'下午回程港口'],['城山日出峰','성산일출봉','제주특별자치도 서귀포시 성산읍 일출로 284-12',126.9425,33.458056,'15:00'],['城山碼頭飯店','성산마리나호텔','제주특별자치도 서귀포시 성산읍 고성오조로 94',126.91455,33.4520193,'入住 1 晚'],['京美家','경미네집','제주특별자치도 서귀포시 성산읍 일출로 259',126.9334624,33.4612157,'晚餐選項'],['景觀海鮮店＆黑豬肉','전망좋은횟집&흑돼지 성산본점','제주특별자치도 서귀포시 성산읍 일출로 248',126.9324568,33.4607268,'晚餐選項']]},
+{id:'d4',label:'9/22',color:'var(--d4)',places:[
+['咸德海灘','함덕해수욕장','제주특별자치도 제주시 조천읍 조함해안로 525',126.6697752,33.5434231,'早上'],['倫敦貝果博物館','런던베이글뮤지엄 제주점','제주특별자치도 제주시 구좌읍 동복로 85 제2동 1층',126.7155939,33.5535978,'早上'],['線條小狗選物店','소랑스런제주 구좌점','제주특별자치도 제주시 구좌읍 동복로 83-1 1층',126.7154,33.5535,'早上'],['Audrant Bakery','오드랑베이커리','제주특별자치도 제주시 조천읍 조함해안로 552-3',126.671551,33.5420828,'早上'],['海女飯捲','해녀김밥 본점','제주특별자치도 제주시 조천읍 함덕로 40 3층 302호',126.671248,33.542393,'早上'],['黑豬肉一條街','제주 흑돼지거리','제주특별자치도 제주시 관덕로15길 일대',126.5272,33.5167,'午餐'],['東門市場','동문재래시장','제주특별자치도 제주시 관덕로14길 20',126.5278,33.5118,'下午／夜市'],['七星商圈','제주칠성로상점가','제주특별자치도 제주시 관덕로13길 12',126.5255,33.5136,'下午'],['濟州島惠斯勒飯店','호텔 휘슬락 제주','제주특별자치도 제주시 서부두2길 26',126.5278,33.5173509,'入住 1 晚']]},
+{id:'d5',label:'9/23',color:'var(--d5)',places:[
+['龍頭岩','용두암','제주특별자치도 제주시 용두암길 15',126.5116346,33.5157583,'上午'],['梨湖木馬燈塔','이호테우 말등대','제주특별자치도 제주시 이호일동 374-4',126.4516,33.5027,'上午'],['彩虹公路','도두동 무지개해안도로','제주특별자치도 제주시 서해안로 232',126.4719749,33.509258,'上午'],['涯月咖啡街','애월카페거리','제주특별자치도 제주시 애월읍 애월로1길 25',126.3097,33.4632,'上午'],['Haru Film','하루필름 제주 애월점','제주특별자치도 제주시 애월읍 애월해안로 672 1층',126.3741549,33.4812421,'選項 1'],['Lazy Pump','레이지펌프','제주특별자치도 제주시 애월읍 애월북서길 32',126.3097954,33.4660037,'選項 2'],['熟成道 涯月店','숙성도 애월점','제주특별자치도 제주시 애월읍 애월로1길 24-16',126.3096504,33.463515,'午餐'],['連洞商圈','누웨마루거리','제주특별자치도 제주시 신광로 47',126.4898,33.4878,'下午'],['樂天免稅店 濟州店','롯데면세점 제주점','제주특별자치도 제주시 도령로 83',126.4868,33.4907,'下午'],['樂天還車','롯데렌터카 제주오토하우스','제주특별자치도 제주시 용해로 92',126.5031542,33.5092041,'晚上'],['濟州國際機場','제주국제공항','제주특별자치도 제주시 공항로 2',126.4934311,33.5070772,'返家']]}
+];
+const weekdayChars=['日','一','二','三','四','五','六'];
+function weekdayOf(mmdd){const [m,d]=mmdd.split('/').map(Number);return weekdayChars[new Date(2026,m-1,d).getDay()]}
+days.forEach(d=>{d.wd=weekdayOf(d.label);d.places=d.places.map((p,i)=>({day:d.id,dayLabel:d.label,color:d.color,seq:i+1,name:p[0],kr:p[1],address:p[2],lon:p[3],lat:p[4],time:p[5],key:d.id+'-'+i}))});
+const all=days.flatMap(d=>d.places);
+const ISLAND_BOUNDS={minLon:126.12,maxLon:126.99,minLat:33.08,maxLat:33.59};
+let filter='all',selected=null;
+const svg=document.querySelector('svg'),list=document.querySelector('.sidebar-list'),toast=document.querySelector('.toast'),popup=document.querySelector('.place-popup'),sidebar=document.querySelector('.sidebar'),menuToggle=document.querySelector('.menu-toggle');
+
+const filterData=[{id:'all',label:'全部'},...days.map(d=>({id:d.id,label:d.label,wd:d.wd,color:d.color}))];
+document.querySelector('.filters').innerHTML=filterData.map((d,i)=>`<button type="button" class="${i===0?'active':''}" data-id="${d.id}">${d.color?`<span class="dot" style="background:${d.color}"></span>`:''}${d.label}${d.wd?' '+d.wd:''}</button>`).join('');
+
+function visible(){return filter==='all'?all:days.find(d=>d.id===filter).places}
+
+async function copyText(text){
+  let copied=false;
+  if(navigator.clipboard&&window.isSecureContext){try{await navigator.clipboard.writeText(text);copied=true}catch(e){}}
+  if(!copied){
+    const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.top='0';t.style.left='0';t.style.opacity='0';t.style.fontSize='16px';
+    document.body.appendChild(t);t.focus();t.select();t.setSelectionRange(0,t.value.length);
+    try{copied=document.execCommand('copy')}catch(e){}
+    t.remove();
+  }
+  toast.textContent=copied?'已複製':'無法自動複製，請長按地址複製';
+  toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1600);
+}
+function openDrawer(){document.body.classList.add('drawer-open');sidebar.setAttribute('aria-hidden','false');menuToggle.setAttribute('aria-expanded','true')}
+function closeDrawer(){document.body.classList.remove('drawer-open');sidebar.setAttribute('aria-hidden','true');menuToggle.setAttribute('aria-expanded','false')}
+function hidePopup(clearSelection){popup.classList.remove('show');popup.setAttribute('aria-hidden','true');if(clearSelection){selected=null;renderList();draw()}}
+
+function updateCopyLabel(){document.querySelector('.copy-all .label').textContent=filter==='all'?'複製全部地址':'複製本日地址'}
+
+function selectPlace(d){
+  filter=d.day;selected=d;
+  syncFilters();updateCopyLabel();
+  const dayEl=popup.querySelector('.popup-day');
+  dayEl.textContent=`${d.dayLabel}・${d.time}・第 ${d.seq} 站`;dayEl.style.color=d.color;
+  popup.querySelector('.popup-name').textContent=d.name;
+  popup.querySelector('.popup-kr').textContent=d.kr;
+  popup.querySelector('.popup-address-text').textContent=d.address;
+  popup.querySelector('.popup-nav').href='https://map.naver.com/p/search/'+encodeURIComponent(d.address);
+  popup.classList.add('show');popup.setAttribute('aria-hidden','false');
+  renderList();draw();
+}
+function syncFilters(){
+  document.querySelectorAll('.filters button').forEach(btn=>{
+    const id=btn.dataset.id,active=id===filter;
+    btn.classList.toggle('active',active);
+    if(id!=='all'){
+      const day=days.find(d=>d.id===id);
+      btn.style.background=active?day.color:'';
+      btn.style.borderColor=active?day.color:'';
+      btn.style.color=active?'#fff':'';
+    }
+  });
+}
+function renderList(){
+  const closed=new Set(Array.from(list.querySelectorAll('details')).filter(el=>!el.open).map(el=>el.dataset.day));
+  list.innerHTML=days.map((day,di)=>`<details class="day-group${day.id===filter?' active':''}" data-day="${day.id}" ${closed.has(day.id)?'':'open'}>
+    <summary><span class="day-dot" style="background:${day.color}"></span><span class="day-title">DAY ${di+1}</span><span class="day-date">${day.label} ${day.wd}</span><span class="chevron">›</span></summary>
+    <div class="day-items">${day.places.map(d=>`<button class="item ${selected&&selected.key===d.key?'selected':''}" type="button" data-key="${d.key}"><span class="item-num" style="background:${d.color}">${String(d.seq).padStart(2,'0')}</span><span><span class="item-name">${d.name}</span><span class="item-meta">${d.time}｜${d.kr}</span></span></button>`).join('')}</div>
+  </details>`).join('');
+  list.querySelectorAll('.item').forEach(btn=>btn.addEventListener('click',()=>{const place=all.find(d=>d.key===btn.dataset.key);selectPlace(place);closeDrawer()}));
+}
+
+function boundsForDay(places){
+  const lons=places.map(p=>p.lon),lats=places.map(p=>p.lat);
+  let minLon=Math.min(...lons),maxLon=Math.max(...lons),minLat=Math.min(...lats),maxLat=Math.max(...lats);
+  const padLon=Math.max((maxLon-minLon)*.25,.02),padLat=Math.max((maxLat-minLat)*.25,.02);
+  minLon-=padLon;maxLon+=padLon;minLat-=padLat;maxLat+=padLat;
+  const minSpanLon=(ISLAND_BOUNDS.maxLon-ISLAND_BOUNDS.minLon)*.5,minSpanLat=(ISLAND_BOUNDS.maxLat-ISLAND_BOUNDS.minLat)*.5;
+  if(maxLon-minLon<minSpanLon){const cx=(minLon+maxLon)/2;minLon=cx-minSpanLon/2;maxLon=cx+minSpanLon/2}
+  if(maxLat-minLat<minSpanLat){const cy=(minLat+maxLat)/2;minLat=cy-minSpanLat/2;maxLat=cy+minSpanLat/2}
+  minLon=Math.max(minLon,ISLAND_BOUNDS.minLon-.05);maxLon=Math.min(maxLon,ISLAND_BOUNDS.maxLon+.05);
+  minLat=Math.max(minLat,ISLAND_BOUNDS.minLat-.05);maxLat=Math.min(maxLat,ISLAND_BOUNDS.maxLat+.05);
+  return {minLon,maxLon,minLat,maxLat};
+}
+function niceStep(range){const steps=[.01,.02,.05,.1,.2,.5];for(const s of steps)if(range/s<=7)return s;return .5}
+
+function layoutMarkers(show,proj,w,h,pad,gap,maxDisplace){
+  gap=gap||48;maxDisplace=maxDisplace||gap*8;
+  const items=show.map(place=>{const point=proj([place.lon,place.lat]);return{place:place,baseX:point[0],baseY:point[1],x:point[0],y:point[1]}}),placed=[],edge=pad+24,ringStep=Math.max(10,Math.min(gap,maxDisplace/2));
+  function distanceToNearest(x,y){if(!placed.length)return Infinity;return placed.reduce((best,item)=>Math.min(best,Math.sqrt((x-item.x)*(x-item.x)+(y-item.y)*(y-item.y))),Infinity)}
+  items.forEach((item,index)=>{let best={x:item.baseX,y:item.baseY,space:distanceToNearest(item.baseX,item.baseY)},chosen=null;if(best.space>=gap)chosen=best;for(let ring=1;!chosen&&ring*ringStep<=maxDisplace;ring++){const radius=ring*ringStep,steps=6*ring,rotation=(index%6)*Math.PI/18;for(let step=0;step<steps;step++){const angle=rotation+step*Math.PI*2/steps,x=item.baseX+Math.cos(angle)*radius,y=item.baseY+Math.sin(angle)*radius;if(x<edge||x>w-edge||y<edge||y>h-edge)continue;const space=distanceToNearest(x,y);if(space>best.space)best={x:x,y:y,space:space};if(space>=gap){chosen={x:x,y:y,space:space};break}}}if(!chosen)chosen=best;item.x=chosen.x;item.y=chosen.y;placed.push(item)});
+  return placed;
+}
+function addRouteArrow(add,x1,y1,x2,y2,color,opacity){
+  const mx=(x1+x2)/2,my=(y1+y2)/2,angle=Math.atan2(y2-y1,x2-x1),len=7,wid=5;
+  const tipX=mx+Math.cos(angle)*len/2,tipY=my+Math.sin(angle)*len/2;
+  const backX=mx-Math.cos(angle)*len/2,backY=my-Math.sin(angle)*len/2;
+  const perpX=Math.cos(angle+Math.PI/2)*wid/2,perpY=Math.sin(angle+Math.PI/2)*wid/2;
+  add('polygon',{class:'route-arrow',points:`${tipX.toFixed(1)},${tipY.toFixed(1)} ${(backX+perpX).toFixed(1)},${(backY+perpY).toFixed(1)} ${(backX-perpX).toFixed(1)},${(backY-perpY).toFixed(1)}`,fill:color,opacity});
+}
+
+function draw(){
+  const ns='http://www.w3.org/2000/svg',mapEl=document.querySelector('.mapbox'),w=Math.max(280,mapEl.clientWidth),h=Math.max(280,mapEl.clientHeight),pad=22;
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+
+  const activeDay=filter==='all'?null:days.find(d=>d.id===filter);
+  const bounds=activeDay?boundsForDay(activeDay.places):ISLAND_BOUNDS;
+  const proj=([lon,lat])=>[pad+(lon-bounds.minLon)/(bounds.maxLon-bounds.minLon)*(w-pad*2),pad+(bounds.maxLat-lat)/(bounds.maxLat-bounds.minLat)*(h-pad*2)];
+  const add=(tag,attrs={},label='')=>{const node=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,v));if(label)node.textContent=label;svg.appendChild(node);return node};
+
+  const lonStep=niceStep(bounds.maxLon-bounds.minLon),latStep=niceStep(bounds.maxLat-bounds.minLat);
+  for(let lon=Math.ceil(bounds.minLon/lonStep)*lonStep;lon<=bounds.maxLon;lon+=lonStep){const [x]=proj([lon,bounds.minLat]);add('line',{class:'gridline',x1:x,y1:pad,x2:x,y2:h-pad})}
+  for(let lat=Math.ceil(bounds.minLat/latStep)*latStep;lat<=bounds.maxLat;lat+=latStep){const [,y]=proj([bounds.minLon,lat]);add('line',{class:'gridline',x1:pad,y1:y,x2:w-pad,y2:y})}
+
+  geo.features.forEach(feature=>{const ring=feature.geometry.coordinates[0],d=ring.map((point,i)=>{const [x,y]=proj(point);return`${i?'L':'M'}${x.toFixed(1)},${y.toFixed(1)}`}).join(' ')+' Z';add('path',{class:'district '+(feature.properties.code==='39010'?'jeju':'seogwipo'),d})});
+
+  [{n:'▲ 漢拏山',p:[126.5312,33.3617],cls:'peak'},{n:'濟州市',p:[126.53,33.47]},{n:'西歸浦市',p:[126.53,33.30]},{n:'城山',p:[126.905,33.452]},{n:'涯月',p:[126.318,33.478]}].forEach(item=>{const [x,y]=proj(item.p);add('text',{class:'region-label'+(item.cls?' '+item.cls:''),x,y},item.n)});
+
+  const isMobile=window.matchMedia('(max-width:767.98px)').matches;
+  const isAllMode=filter==='all';
+  const V=isMobile?{
+    markerR:isAllMode?9.5:12,markerRSel:isAllMode?13:15,markerFont:10.5,
+    hitR:20,ringR:isAllMode?16:18,
+    routeWidthActive:isAllMode?1.8:2.5,routeOpacityActive:isAllMode?.45:.85,
+    routeOpacityFade:.08,
+    markerOpacityAll:.85,
+    showContext:false,
+    gap:22,maxDisplace:32,
+    arrows:!isAllMode
+  }:{
+    markerR:13,markerRSel:18,markerFont:11.5,
+    hitR:24,ringR:22,
+    routeWidthActive:1.8,routeOpacityActive:.55,
+    routeOpacityFade:.1,
+    markerOpacityAll:1,
+    showContext:true,
+    gap:48,maxDisplace:48*8,
+    arrows:false
+  };
+
+  days.forEach(day=>{
+    const isActive=filter==='all'||day.id===filter;
+    const pts=day.places.map(p=>proj([p.lon,p.lat]));
+    if(pts.length>1){
+      add('polyline',{class:'route',stroke:day.color,style:`opacity:${isActive?V.routeOpacityActive:V.routeOpacityFade};stroke-width:${isActive?V.routeWidthActive:1.4}px`,points:pts.map(p=>p.join(',')).join(' ')});
+      if(isActive&&V.arrows){for(let i=0;i<pts.length-1;i++)addRouteArrow(add,pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1],day.color,.65)}
+    }
+  });
+
+  if(activeDay&&V.showContext){
+    const others=all.filter(p=>p.day!==filter).filter(p=>{const [x,y]=proj([p.lon,p.lat]);return x>=-16&&x<=w+16&&y>=-16&&y<=h+16});
+    others.forEach(place=>{const [x,y]=proj([place.lon,place.lat]),g=document.createElementNS(ns,'g');g.setAttribute('class','marker context');g.setAttribute('transform',`translate(${x},${y})`);g.setAttribute('opacity','.15');const circle=document.createElementNS(ns,'circle');circle.setAttribute('r','5');circle.setAttribute('fill',place.color);g.appendChild(circle);svg.appendChild(g)});
+  }
+
+  const focusPlaces=activeDay?activeDay.places:all;
+  const markers=layoutMarkers(focusPlaces,proj,w,h,pad,V.gap,V.maxDisplace);
+  markers.forEach(item=>{const dx=item.x-item.baseX,dy=item.y-item.baseY;if(Math.sqrt(dx*dx+dy*dy)>3)add('line',{class:'leader',x1:item.baseX,y1:item.baseY,x2:item.x,y2:item.y})});
+  let selectedNode=null;
+  markers.forEach(item=>{
+    const place=item.place,isSel=!!(selected&&selected.key===place.key),g=document.createElementNS(ns,'g');
+    g.setAttribute('class','marker '+(isSel?'selected':''));
+    g.setAttribute('transform',`translate(${item.x},${item.y})`);
+    g.setAttribute('role','button');g.setAttribute('tabindex','0');
+    g.setAttribute('aria-label',`${place.dayLabel} ${place.seq}. ${place.name}`);
+    if(isAllMode)g.setAttribute('opacity',String(V.markerOpacityAll));
+    const hit=document.createElementNS(ns,'circle');hit.setAttribute('class','hit');hit.setAttribute('r',String(V.hitR));
+    g.appendChild(hit);
+    if(isSel){const ring=document.createElementNS(ns,'circle');ring.setAttribute('class','ring');ring.setAttribute('r',String(V.ringR));g.appendChild(ring)}
+    const circle=document.createElementNS(ns,'circle');circle.setAttribute('class','dot');circle.setAttribute('r',isSel?V.markerRSel:V.markerR);circle.setAttribute('fill',place.color);
+    const text=document.createElementNS(ns,'text');text.style.fontSize=V.markerFont+'px';text.textContent=place.seq;
+    g.appendChild(circle);g.appendChild(text);
+    g.addEventListener('click',()=>selectPlace(place));
+    g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectPlace(place)}});
+    svg.appendChild(g);
+    if(isSel)selectedNode=g;
+  });
+  if(selectedNode)svg.appendChild(selectedNode);
+}
+
+document.querySelectorAll('.filters button').forEach(button=>button.addEventListener('click',()=>{filter=button.dataset.id;selected=null;syncFilters();updateCopyLabel();hidePopup(false);renderList();draw()}));
+document.querySelector('.copy-all').addEventListener('click',()=>copyText(visible().map(d=>`${d.dayLabel} ${d.seq}. ${d.name}\n${d.kr}\n地址：${d.address}`).join('\n\n')));
+document.querySelector('.popup-copy').addEventListener('click',()=>{if(selected)copyText(`中文名稱：${selected.name}\n韓文名稱：${selected.kr}\n地址：${selected.address}`)});
+document.querySelector('.popup-address-copy').addEventListener('click',()=>{if(selected)copyText(selected.address)});
+document.querySelector('.popup-close').addEventListener('click',()=>hidePopup(true));
+menuToggle.addEventListener('click',openDrawer);
+document.querySelector('.sidebar-close').addEventListener('click',closeDrawer);
+document.querySelector('.backdrop').addEventListener('click',closeDrawer);
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){if(document.body.classList.contains('drawer-open'))closeDrawer();else if(selected)hidePopup(true)}});
+if('ResizeObserver'in window)new ResizeObserver(draw).observe(document.querySelector('.mapbox'));else window.addEventListener('resize',draw);
+updateCopyLabel();renderList();draw();
+</script>
+
+</body>
+</html>
