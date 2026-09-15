@@ -1,0 +1,13 @@
+{
+  "name": "濟州島旅行地圖",
+  "short_name": "濟州島地圖",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f5ef",
+  "theme_color": "#2f4a3e",
+  "icons": [
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png"}
+  ]
+}

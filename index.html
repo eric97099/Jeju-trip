@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>濟州島旅行地圖</title>
 
+<link rel="icon" href="favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2f4a3e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="濟州島地圖">
 <style>
 :root{
   color-scheme:light;
@@ -67,7 +74,10 @@ button,a{font:inherit}
 .filters button[data-id="all"].active{background:var(--brand);border-color:var(--brand);color:#fff}
 
 .mapbox{position:relative;background:var(--sea);border-radius:21px;overflow:hidden;box-shadow:0 12px 35px rgba(40,50,40,.06);height:clamp(600px,calc(100dvh - 170px),820px)}
-.mapbox svg{display:block;width:100%;height:100%;touch-action:manipulation}
+.mapbox svg{display:block;width:100%;height:100%;touch-action:none;-webkit-user-select:none;user-select:none}
+.viewport.animate{transition:transform .25s ease}
+.map-reset{position:absolute;z-index:7;top:14px;right:14px;width:40px;height:40px;border:1px solid var(--hairline);border-radius:50%;background:var(--card-strong);color:var(--ink);font-size:17px;line-height:1;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.map-reset[hidden]{display:none}
 .district{stroke:var(--hairline);stroke-width:1}
 .jeju{fill:var(--land1)}
 .seogwipo{fill:var(--land2)}
@@ -154,7 +164,7 @@ button,a{font:inherit}
     </button>
   </header>
   <div class="body">
-    <aside class="sidebar" aria-label="行程清單">
+    <aside class="sidebar" aria-label="行程清單" role="dialog" aria-modal="true">
       <div class="sidebar-head">
         <div><h2>行程清單</h2><div class="sub">點選景點可在地圖查看位置</div></div>
         <button class="sidebar-close" type="button" aria-label="關閉行程選單">×</button>
@@ -165,7 +175,8 @@ button,a{font:inherit}
       <nav class="filters" aria-label="日期篩選"></nav>
       <div class="mapbox">
         <svg role="img" aria-label="濟州島旅行地圖"></svg>
-        <section class="place-popup" aria-live="polite" aria-hidden="true">
+        <button class="map-reset" type="button" aria-label="重設地圖視角" title="重設地圖視角" hidden>⟲</button>
+        <section class="place-popup" aria-live="polite" aria-hidden="true" role="dialog">
           <button class="popup-close" type="button" aria-label="關閉景點資訊">×</button>
           <div class="popup-info">
             <div class="popup-day"></div>
@@ -204,8 +215,68 @@ function weekdayOf(mmdd){const [m,d]=mmdd.split('/').map(Number);return weekdayC
 days.forEach(d=>{d.wd=weekdayOf(d.label);d.places=d.places.map((p,i)=>({day:d.id,dayLabel:d.label,color:d.color,seq:i+1,name:p[0],kr:p[1],address:p[2],lon:p[3],lat:p[4],time:p[5],key:d.id+'-'+i}))});
 const all=days.flatMap(d=>d.places);
 const ISLAND_BOUNDS={minLon:126.12,maxLon:126.99,minLat:33.08,maxLat:33.59};
-let filter='all',selected=null;
-const svg=document.querySelector('svg'),list=document.querySelector('.sidebar-list'),toast=document.querySelector('.toast'),popup=document.querySelector('.place-popup'),sidebar=document.querySelector('.sidebar'),menuToggle=document.querySelector('.menu-toggle');
+let filter='all',selected=null,lastFocused=null;
+const svg=document.querySelector('svg'),list=document.querySelector('.sidebar-list'),toast=document.querySelector('.toast'),popup=document.querySelector('.place-popup'),sidebar=document.querySelector('.sidebar'),menuToggle=document.querySelector('.menu-toggle'),mapResetBtn=document.querySelector('.map-reset');
+
+let panScale=1,panX=0,panY=0,mapW=0,mapH=0,currentViewport=null,mapDragMoved=false;
+const MIN_SCALE=1,MAX_SCALE=4;
+function applyTransform(){
+  if(currentViewport)currentViewport.setAttribute('transform',`translate(${panX},${panY}) scale(${panScale})`);
+  mapResetBtn.hidden=(Math.abs(panScale-1)<.001&&Math.abs(panX)<.5&&Math.abs(panY)<.5);
+}
+function clampPan(){
+  const overpan=Math.min(80,mapW*.15,mapH*.15)||40;
+  const minX=mapW-mapW*panScale-overpan,maxX=overpan;
+  const minY=mapH-mapH*panScale-overpan,maxY=overpan;
+  panX=Math.min(maxX,Math.max(minX,panX));
+  panY=Math.min(maxY,Math.max(minY,panY));
+}
+function svgLocalPoint(e){const r=svg.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+function ptDist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function ptMid(a,b){return{x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
+const activePointers=new Map();
+let pinchStartDist=null,pinchStartScale=1,pinchMid=null,dragStart=null;
+svg.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  svg.setPointerCapture(e.pointerId);
+  activePointers.set(e.pointerId,svgLocalPoint(e));
+  if(activePointers.size===1){dragStart=svgLocalPoint(e);mapDragMoved=false}
+  if(activePointers.size===2){const [a,b]=[...activePointers.values()];pinchStartDist=ptDist(a,b);pinchStartScale=panScale;pinchMid=ptMid(a,b)}
+});
+svg.addEventListener('pointermove',e=>{
+  if(!activePointers.has(e.pointerId))return;
+  const p=svgLocalPoint(e),prev=activePointers.get(e.pointerId);
+  activePointers.set(e.pointerId,p);
+  if(activePointers.size===1){
+    const dx=p.x-prev.x,dy=p.y-prev.y;
+    if(Math.hypot(p.x-dragStart.x,p.y-dragStart.y)>6)mapDragMoved=true;
+    if(mapDragMoved){panX+=dx;panY+=dy;clampPan();applyTransform();e.preventDefault()}
+  }else if(activePointers.size===2){
+    mapDragMoved=true;
+    const [a,b]=[...activePointers.values()];
+    const newDist=ptDist(a,b),newMid=ptMid(a,b);
+    const newScale=Math.min(MAX_SCALE,Math.max(MIN_SCALE,pinchStartScale*(newDist/pinchStartDist)));
+    const contentX=(pinchMid.x-panX)/panScale,contentY=(pinchMid.y-panY)/panScale;
+    panScale=newScale;panX=newMid.x-panScale*contentX;panY=newMid.y-panScale*contentY;
+    clampPan();applyTransform();e.preventDefault();
+  }
+});
+function endPointer(e){activePointers.delete(e.pointerId);if(activePointers.size<2)pinchStartDist=null}
+svg.addEventListener('pointerup',endPointer);
+svg.addEventListener('pointercancel',endPointer);
+svg.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const p=svgLocalPoint(e),factor=Math.exp(-e.deltaY*.0015);
+  const newScale=Math.min(MAX_SCALE,Math.max(MIN_SCALE,panScale*factor));
+  const contentX=(p.x-panX)/panScale,contentY=(p.y-panY)/panScale;
+  panScale=newScale;panX=p.x-panScale*contentX;panY=p.y-panScale*contentY;
+  clampPan();applyTransform();
+},{passive:false});
+mapResetBtn.addEventListener('click',()=>{
+  currentViewport&&currentViewport.classList.add('animate');
+  panScale=1;panX=0;panY=0;applyTransform();
+  setTimeout(()=>{currentViewport&&currentViewport.classList.remove('animate')},260);
+});
 
 const filterData=[{id:'all',label:'全部'},...days.map(d=>({id:d.id,label:d.label,wd:d.wd,color:d.color}))];
 document.querySelector('.filters').innerHTML=filterData.map((d,i)=>`<button type="button" class="${i===0?'active':''}" data-id="${d.id}">${d.color?`<span class="dot" style="background:${d.color}"></span>`:''}${d.label}${d.wd?' '+d.wd:''}</button>`).join('');
@@ -224,13 +295,37 @@ async function copyText(text){
   toast.textContent=copied?'已複製':'無法自動複製，請長按地址複製';
   toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1600);
 }
-function openDrawer(){document.body.classList.add('drawer-open');sidebar.setAttribute('aria-hidden','false');menuToggle.setAttribute('aria-expanded','true')}
-function closeDrawer(){document.body.classList.remove('drawer-open');sidebar.setAttribute('aria-hidden','true');menuToggle.setAttribute('aria-expanded','false')}
-function hidePopup(clearSelection){popup.classList.remove('show');popup.setAttribute('aria-hidden','true');if(clearSelection){selected=null;renderList();draw()}}
+const inertTargets=()=>[document.querySelector('.topbar'),document.querySelector('.content'),document.querySelector('.footer')];
+function openDrawer(){
+  if(!window.matchMedia('(max-width:1023.98px)').matches)return;
+  if(document.body.classList.contains('drawer-open'))return;
+  lastFocused=document.activeElement;
+  document.body.classList.add('drawer-open');sidebar.setAttribute('aria-hidden','false');menuToggle.setAttribute('aria-expanded','true');
+  inertTargets().forEach(el=>{if(el)el.inert=true});
+  const closeBtn=document.querySelector('.sidebar-close');if(closeBtn){void closeBtn.offsetHeight;closeBtn.focus()}
+}
+function closeDrawer(skipFocusRestore){
+  if(!document.body.classList.contains('drawer-open'))return;
+  const shouldRestoreFocus=!skipFocusRestore&&sidebar.contains(document.activeElement);
+  document.body.classList.remove('drawer-open');sidebar.setAttribute('aria-hidden','true');menuToggle.setAttribute('aria-expanded','false');
+  inertTargets().forEach(el=>{if(el)el.inert=false});
+  if(shouldRestoreFocus&&lastFocused&&typeof lastFocused.focus==='function')lastFocused.focus();
+  lastFocused=null;
+}
+function hidePopup(clearSelection){
+  const wasShown=popup.classList.contains('show');
+  popup.classList.remove('show');popup.setAttribute('aria-hidden','true');
+  if(wasShown&&popup.contains(document.activeElement)){
+    const target=document.querySelector('.filters button.active')||menuToggle;
+    if(target&&typeof target.focus==='function')target.focus();
+  }
+  if(clearSelection){selected=null;renderList();draw()}
+}
 
 function updateCopyLabel(){document.querySelector('.copy-all .label').textContent=filter==='all'?'複製全部地址':'複製本日地址'}
 
 function selectPlace(d){
+  const wasHidden=!popup.classList.contains('show');
   filter=d.day;selected=d;
   syncFilters();updateCopyLabel();
   const dayEl=popup.querySelector('.popup-day');
@@ -239,7 +334,11 @@ function selectPlace(d){
   popup.querySelector('.popup-kr').textContent=d.kr;
   popup.querySelector('.popup-address-text').textContent=d.address;
   popup.querySelector('.popup-nav').href='https://map.naver.com/p/search/'+encodeURIComponent(d.address);
-  popup.classList.add('show');popup.setAttribute('aria-hidden','false');
+  if(wasHidden){
+    popup.classList.add('show');popup.setAttribute('aria-hidden','false');
+    const closeBtn=popup.querySelector('.popup-close');
+    if(closeBtn){void closeBtn.offsetHeight;closeBtn.focus()}
+  }
   renderList();draw();
 }
 function syncFilters(){
@@ -260,7 +359,7 @@ function renderList(){
     <summary><span class="day-dot" style="background:${day.color}"></span><span class="day-title">DAY ${di+1}</span><span class="day-date">${day.label} ${day.wd}</span><span class="chevron">›</span></summary>
     <div class="day-items">${day.places.map(d=>`<button class="item ${selected&&selected.key===d.key?'selected':''}" type="button" data-key="${d.key}"><span class="item-num" style="background:${d.color}">${String(d.seq).padStart(2,'0')}</span><span><span class="item-name">${d.name}</span><span class="item-meta">${d.time}｜${d.kr}</span></span></button>`).join('')}</div>
   </details>`).join('');
-  list.querySelectorAll('.item').forEach(btn=>btn.addEventListener('click',()=>{const place=all.find(d=>d.key===btn.dataset.key);selectPlace(place);closeDrawer()}));
+  list.querySelectorAll('.item').forEach(btn=>btn.addEventListener('click',()=>{const place=all.find(d=>d.key===btn.dataset.key);closeDrawer(true);selectPlace(place)}));
 }
 
 function boundsForDay(places){
@@ -296,11 +395,14 @@ function draw(){
   const ns='http://www.w3.org/2000/svg',mapEl=document.querySelector('.mapbox'),w=Math.max(280,mapEl.clientWidth),h=Math.max(280,mapEl.clientHeight),pad=22;
   svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
   while(svg.firstChild)svg.removeChild(svg.firstChild);
+  currentViewport=document.createElementNS(ns,'g');currentViewport.setAttribute('class','viewport');
+  svg.appendChild(currentViewport);
+  mapW=w;mapH=h;panScale=1;panX=0;panY=0;applyTransform();
 
   const activeDay=filter==='all'?null:days.find(d=>d.id===filter);
   const bounds=activeDay?boundsForDay(activeDay.places):ISLAND_BOUNDS;
   const proj=([lon,lat])=>[pad+(lon-bounds.minLon)/(bounds.maxLon-bounds.minLon)*(w-pad*2),pad+(bounds.maxLat-lat)/(bounds.maxLat-bounds.minLat)*(h-pad*2)];
-  const add=(tag,attrs={},label='')=>{const node=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,v));if(label)node.textContent=label;svg.appendChild(node);return node};
+  const add=(tag,attrs={},label='')=>{const node=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,v));if(label)node.textContent=label;currentViewport.appendChild(node);return node};
 
   const lonStep=niceStep(bounds.maxLon-bounds.minLon),latStep=niceStep(bounds.maxLat-bounds.minLat);
   for(let lon=Math.ceil(bounds.minLon/lonStep)*lonStep;lon<=bounds.maxLon;lon+=lonStep){const [x]=proj([lon,bounds.minLat]);add('line',{class:'gridline',x1:x,y1:pad,x2:x,y2:h-pad})}
@@ -343,7 +445,7 @@ function draw(){
 
   if(activeDay&&V.showContext){
     const others=all.filter(p=>p.day!==filter).filter(p=>{const [x,y]=proj([p.lon,p.lat]);return x>=-16&&x<=w+16&&y>=-16&&y<=h+16});
-    others.forEach(place=>{const [x,y]=proj([place.lon,place.lat]),g=document.createElementNS(ns,'g');g.setAttribute('class','marker context');g.setAttribute('transform',`translate(${x},${y})`);g.setAttribute('opacity','.15');const circle=document.createElementNS(ns,'circle');circle.setAttribute('r','5');circle.setAttribute('fill',place.color);g.appendChild(circle);svg.appendChild(g)});
+    others.forEach(place=>{const [x,y]=proj([place.lon,place.lat]),g=document.createElementNS(ns,'g');g.setAttribute('class','marker context');g.setAttribute('transform',`translate(${x},${y})`);g.setAttribute('opacity','.15');const circle=document.createElementNS(ns,'circle');circle.setAttribute('r','5');circle.setAttribute('fill',place.color);g.appendChild(circle);currentViewport.appendChild(g)});
   }
 
   const focusPlaces=activeDay?activeDay.places:all;
@@ -363,12 +465,12 @@ function draw(){
     const circle=document.createElementNS(ns,'circle');circle.setAttribute('class','dot');circle.setAttribute('r',isSel?V.markerRSel:V.markerR);circle.setAttribute('fill',place.color);
     const text=document.createElementNS(ns,'text');text.style.fontSize=V.markerFont+'px';text.textContent=place.seq;
     g.appendChild(circle);g.appendChild(text);
-    g.addEventListener('click',()=>selectPlace(place));
+    g.addEventListener('click',()=>{if(mapDragMoved)return;selectPlace(place)});
     g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectPlace(place)}});
-    svg.appendChild(g);
+    currentViewport.appendChild(g);
     if(isSel)selectedNode=g;
   });
-  if(selectedNode)svg.appendChild(selectedNode);
+  if(selectedNode)currentViewport.appendChild(selectedNode);
 }
 
 document.querySelectorAll('.filters button').forEach(button=>button.addEventListener('click',()=>{filter=button.dataset.id;selected=null;syncFilters();updateCopyLabel();hidePopup(false);renderList();draw()}));
@@ -379,7 +481,16 @@ document.querySelector('.popup-close').addEventListener('click',()=>hidePopup(tr
 menuToggle.addEventListener('click',openDrawer);
 document.querySelector('.sidebar-close').addEventListener('click',closeDrawer);
 document.querySelector('.backdrop').addEventListener('click',closeDrawer);
-document.addEventListener('keydown',event=>{if(event.key==='Escape'){if(document.body.classList.contains('drawer-open'))closeDrawer();else if(selected)hidePopup(true)}});
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'){if(document.body.classList.contains('drawer-open'))closeDrawer();else if(selected)hidePopup(true);return}
+  if(event.key==='Tab'&&document.body.classList.contains('drawer-open')){
+    const focusables=sidebar.querySelectorAll('button, [href], summary, [tabindex]:not([tabindex="-1"])');
+    if(!focusables.length)return;
+    const first=focusables[0],last=focusables[focusables.length-1];
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+  }
+});
 if('ResizeObserver'in window)new ResizeObserver(draw).observe(document.querySelector('.mapbox'));else window.addEventListener('resize',draw);
 updateCopyLabel();renderList();draw();
 </script>
